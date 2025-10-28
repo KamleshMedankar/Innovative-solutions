@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!-- <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -218,7 +218,73 @@
   </script>
 
 </body>
+</html> -->
+
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Payment Test</title>
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+</head>
+<body style="text-align:center; padding-top:100px">
+  <h2>Pay ₹10 Test</h2>
+  <button id="pay-btn">Pay ₹10 Now</button>
+  <p id="status"></p>
+
+  <script>
+    document.getElementById('pay-btn').onclick = async function () {
+      const status = document.getElementById('status');
+      status.innerText = "Creating payment...";
+
+      try {
+        const res = await fetch("https://adorable-art-production-5742.up.railway.app/create-payment", {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({
+            amount: 10,
+            currency: "INR",
+            gateway: "razorpay"
+          })
+        });
+
+        const data = await res.json();
+        console.log("Backend Response:", data);
+
+        if (!data.payment_url) {
+          status.innerText = "Backend error: " + JSON.stringify(data);
+          return;
+        }
+
+        const order_id = data.payment_url.split("order_id=")[1];
+
+        const options = {
+          "key": "rzp_test_RVO9WC0NnjyIEW",
+          "amount": 10 * 100,
+          "currency": "INR",
+          "name": "Innovative Solutions",
+          "description": "Test Payment",
+          "order_id": order_id,
+          "handler": function (response) {
+            console.log("Payment Success:", response);
+            status.innerText = "✅ Payment success! Payment ID: " + response.razorpay_payment_id;
+          }
+        };
+
+        const rzp = new Razorpay(options);
+        rzp.open();
+
+      } catch (err) {
+        console.error(err);
+        status.innerText = "Error: " + err.message;
+      }
+    };
+  </script>
+</body>
 </html>
+
+
 
 
 
