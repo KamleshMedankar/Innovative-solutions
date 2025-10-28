@@ -139,73 +139,87 @@
     <a href="https://merchant.razorpay.com/policy/RVHe6bt75yz3tu/refund" target="_blank">Refund Policy</a>
   </footer>
 
+   <!-- Razorpay SDK -->
   <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-  <script>
-document.getElementById('pay-btn').onclick = async function() {
-    const statusDiv = document.getElementById('status');
-    statusDiv.innerHTML = "Processing payment...";
 
-    try {
-        // 🔹 1. Call backend to create Razorpay order
-        const createResp = await fetch('https://adorable-art-production-5742.up.railway.app/create-payment', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                amount: 10,              // ₹10
-                currency: "INR",
-                gateway: "razorpay"
-            })
+  <script>
+    document.getElementById('pay-btn').onclick = async function () {
+      const statusDiv = document.getElementById('status');
+      statusDiv.innerHTML = "⏳ Creating payment...";
+
+      try {
+        const backendURL = "https://adorable-art-production-5742.up.railway.app";
+
+        // ✅ Call backend to create payment
+        const createResp = await fetch(`${backendURL}/create-payment`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            amount: 10, // ₹10 fixed
+            currency: "INR",
+            order_id: "order_" + Math.floor(Math.random() * 100000),
+            customer_email: "test@example.com",
+            customer_name: "Demo User",
+            gateway: "razorpay"
+          })
         });
 
         const createData = await createResp.json();
-        if (!createData.payment_url) {
-            statusDiv.innerHTML = "Error creating payment: " + JSON.stringify(createData);
-            return;
+        console.log("Create Payment Response:", createData);
+
+        if (!createData || !createData.order_id) {
+          statusDiv.innerHTML = "❌ Error creating payment: " + JSON.stringify(createData);
+          return;
         }
 
-        const order_id = createData.payment_url.split("order_id=")[1];
-
-        // 🔹 2. Configure Razorpay checkout
+        // ✅ Launch Razorpay checkout
         const options = {
-            "key": "rzp_test_RVO9WC0NnjyIEW",  // your Razorpay Test Key
-            "amount": 10 * 100,                // convert ₹ to paisa
-            "currency": "INR",
-            "name": "Innovative Solutions",
-            "description": "Test Payment",
-            "order_id": order_id,
-            "handler": async function (response) {
-                statusDiv.innerHTML = "✅ Payment successful! Verifying...";
+          key: "rzp_test_RVO9WC0NnjyIEW", // 🔑 Razorpay test key
+          amount: 10 * 100, // amount in paisa
+          currency: "INR",
+          name: "Innovative Solutions",
+          description: "Test Payment",
+          order_id: createData.order_id,
+          handler: async function (response) {
+            console.log("Payment Response:", response);
+            statusDiv.innerHTML = "✅ Payment successful! Verifying...";
 
-                // 🔹 3. Verify payment
-                const verifyResp = await fetch('https://adorable-art-production-5742.up.railway.app/verify-payment', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        payment_id: response.razorpay_payment_id,
-                        order_id: response.razorpay_order_id,
-                        signature: response.razorpay_signature,
-                        gateway: "razorpay"
-                    })
-                });
+            // ✅ Verify payment in backend
+            const verifyResp = await fetch(`${backendURL}/verify-payment`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                payment_id: response.razorpay_payment_id,
+                order_id: response.razorpay_order_id,
+                signature: response.razorpay_signature,
+                gateway: "razorpay"
+              })
+            });
 
-                const verifyData = await verifyResp.json();
-                statusDiv.innerHTML = "Payment Status: " + (verifyData.status || "verified");
-            },
-            "theme": { "color": "#1e90ff" }
+            const verifyData = await verifyResp.json();
+            console.log("Verify Response:", verifyData);
+            statusDiv.innerHTML = "✅ Payment Verified: " + verifyData.status;
+          },
+          prefill: {
+            name: "Demo User",
+            email: "test@example.com"
+          },
+          theme: { color: "#3399cc" }
         };
 
         const rzp = new Razorpay(options);
         rzp.open();
 
-    } catch (err) {
+      } catch (err) {
         console.error(err);
         statusDiv.innerHTML = "❌ Error: " + err.message;
-    }
-};
-</script>
+      }
+    };
+  </script>
 
 </body>
 </html>
+
 
 
 
